@@ -12,4 +12,4 @@ Implementation of the meta heuristic Particle Swarm Optimization in pure julia.
 
 This package is in an early development version. If you want to experiment with it, install it with
 
-    Pkg.clone("git://example.com/path/to/Package.jl.git")
+    Pkg.clone("git@github.com:control13/ParticleSwarmOptimizer.jl.git")

@@ -11,7 +11,7 @@ rearrange!(n::Neighbourhood, results_best::AbstractVector{<:Number}, compare::Fu
 """
     LocalNeighbourhood
 
-
+The LocalNeighbourhood organizes the particle in a ring topology. For width=1 for example, each particle has three neighbours, one to the left, one to the right and itself. The width says to how many particles on the left and on the right it is connected.
 """
 struct LocalNeighbourhood <: Neighbourhood
     particle_number::Integer
@@ -32,7 +32,7 @@ getneighbour(l::LocalNeighbourhood, i::Integer) = l.neighbours[i]
 """
     GlobalNeighbourhood
 
-
+In the GlobalNeighbourhood all particle are connected to all other particles.
 """
 struct GlobalNeighbourhood <: Neighbourhood
     particle_number::Integer
