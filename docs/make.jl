@@ -12,5 +12,8 @@ makedocs(
 
 deploydocs(
     repo = "github.com/control13/ParticleSwarmOptimizer.jl.git",
-    julia = "0.6"
+    target = "build",
+    julia = "0.6",
+    deps   = nothing,
+    make   = nothing
 )
