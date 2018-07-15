@@ -13,3 +13,8 @@ Implementation of the meta heuristic Particle Swarm Optimization in pure julia.
 This package is in an early development version. If you want to experiment with it, install it with
 
     Pkg.clone("git@github.com:control13/ParticleSwarmOptimizer.jl.git")
+
+## Documentation
+
+[![](https://img.shields.io/badge/docs-stable-blue.svg)](https://control13.github.io/ParticleSwarmOptimizer.jl/stable)
+[![](https://img.shields.io/badge/docs-latest-blue.svg)](https://control13.github.io/ParticleSwarmOptimizer.jl/latest)

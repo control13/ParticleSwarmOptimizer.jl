@@ -7,7 +7,8 @@ for test functions.
 """
 module TestFunctions
 
-export sphere, rastrigin, ackley, rosenbrock, eggholder, beale, square_movingpeak, ellipse, stybliski, mccormick, himmelblau, griewank, schafferf6
+export sphere, rastrigin, ackley, rosenbrock, eggholder, beale, square_movingpeak, ellipse, stybliski, mccormick,
+       himmelblau, griewank, schafferf6
 
 """
     sphere(x::AbstractVector{<:Number})
@@ -217,7 +218,9 @@ end
 """
     ellipse(x::AbstractVector{<:Number}; a::Number=-2, b::Number=1)
 
-Ellipse function recommanded by Thomas Rheinhardt in 2015. Default updatefunction for position and velocity in the PSO may have problems with this function. A 2011 presented way with a gravity center and a more random selection seems to be more robust.
+Ellipse function recommanded by Thomas Rheinhardt in 2015. Default updatefunction for position and velocity in the PSO
+may have problems with this function. A 2011 presented way with a gravity center and a more random selection
+seems to be more robust.
 
 ### Minimum
 

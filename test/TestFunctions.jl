@@ -1,4 +1,4 @@
-tfn = pso.TestFunctions
+const tfn = pso.TestFunctions
 
 @testset "TestFunctions" begin
 

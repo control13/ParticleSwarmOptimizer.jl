@@ -3,7 +3,7 @@ export Objective, PSO, update_velocity!, update_position!, optimize!
 """
     Objective
 
-
+Stores the objective function and the related `search_space` the dimensionality.
 """
 struct Objective
     fun::Function
@@ -21,7 +21,7 @@ const UPPER_BOUND_IDX = 2
 """
     PSO
 
-
+Packs all data for the pso.
 """
 struct PSO
     objective::Objective
@@ -54,10 +54,9 @@ struct PSO
 
     compare::Function
 end
-function PSO(objective::Objective, neighbours::Neighbourhood; additional_arguments::Dict{Symbol, <:Any}=Dict{Symbol, Any}(), compare::Function=<, w::Number=1.0/(2.0*log(2.0)), c1::Number=0.5 + log(2), c2::Number=c1)
-    # if typeof(search_space) <: AbstractVector{Float64}
-    #     search_space = [search_space for i in 1:number_of_dimensions] # TODO: different search space for different dimensions, constraint search space, (precalculated search space)
-    # end
+function PSO(objective::Objective, neighbours::Neighbourhood;
+             additional_arguments::Dict{Symbol, <:Any}=Dict{Symbol, Any}(), compare::Function=<,
+             w::Number=1.0/(2.0*log(2.0)), c1::Number=0.5 + log(2), c2::Number=c1)
 
     number_of_particles = length(neighbours)
     number_of_dimensions = objective.number_of_dimensions
@@ -71,7 +70,9 @@ function PSO(objective::Objective, neighbours::Neighbourhood; additional_argumen
 
     for d in 1:length(position_dimension)
         position_dimension[d] .= project.(position_dimension[d], 0, 1, objective.search_space[d]...)
-        velocity_dimension[d] .= project.(velocity_dimension[d], 0, 1, objective.search_space[d][LOWER_BOUND_IDX].-position_dimension[d], objective.search_space[d][UPPER_BOUND_IDX].-position_dimension[d])
+        velocity_dimension[d] .= project.(velocity_dimension[d], 0, 1, 
+                                          objective.search_space[d][LOWER_BOUND_IDX].-position_dimension[d],
+                                          objective.search_space[d][UPPER_BOUND_IDX].-position_dimension[d])
     end
 
     results = objective.fun.(position; additional_arguments...)
@@ -88,11 +89,23 @@ function PSO(objective::Objective, neighbours::Neighbourhood; additional_argumen
 
     better = BitArray(length(position))
 
-    PSO(objective, w, c1, c2, position_matrix, velocity_matrix, position, velocity, position_dimension, velocity_dimension, results, pos_best_mat, pos_best, results_best, random_mat, rand1, rand2, update_velocity!, update_position!, get_localbest, neighbours, better, compare)
+    PSO(objective, w, c1, c2, position_matrix, velocity_matrix, position, velocity, position_dimension,
+        velocity_dimension, results, pos_best_mat, pos_best, results_best, random_mat, rand1, rand2, update_velocity!,
+        update_position!, get_localbest, neighbours, better, compare)
 end
 
 # update functions
-@inline function update_velocity!(position::AbstractVector{T}, velocity::AbstractVector{T}, personal_best::AbstractVector{T}, local_best::AbstractVector{T}, rand_a::AbstractVector{T}, rand_b::AbstractVector{T}, w::Number, c1::Number, c2::Number) where T<:Number
+"""
+    update_velocity!(position::AbstractVector{T}, velocity::AbstractVector{T}, personal_best::AbstractVector{T},
+                     local_best::AbstractVector{T}, rand_a::AbstractVector{T}, rand_b::AbstractVector{T}, w::Number,
+                     c1::Number, c2::Number) where T<:Number
+
+Default equation for calculating the velocity for the next step.
+"""
+@inline function update_velocity!(position::AbstractVector{T}, velocity::AbstractVector{T},
+                                  personal_best::AbstractVector{T}, local_best::AbstractVector{T},
+                                  rand_a::AbstractVector{T}, rand_b::AbstractVector{T}, w::Number, c1::Number,
+                                  c2::Number) where T<:Number
     velocity .= w.*velocity .+ c1.*rand_a.*(personal_best .- position) .+ c2.*rand_b.*(local_best .- position)
 end
 
@@ -100,11 +113,24 @@ end
 #     velocity .= w.*velocity .+ c1.*rand_a.*(personal_best .- position) .+ c2.*rand_b.*(local_best .- position)
 # end
 
-@inline function update_position!(position::AbstractVector{T}, velocity::AbstractVector{T}, personal_best::AbstractVector{T}, local_best::AbstractVector{T}) where T<:Number
+"""
+    function update_position!(position::AbstractVector{T}, velocity::AbstractVector{T},
+                              personal_best::AbstractVector{T}, local_best::AbstractVector{T}) where T<:Number
+
+Default update of the next position.
+"""
+@inline function update_position!(position::AbstractVector{T}, velocity::AbstractVector{T},
+                                  personal_best::AbstractVector{T}, local_best::AbstractVector{T}) where T<:Number
     position .+= velocity
 end
 
-@inline function get_localbest(results_best::AbstractVector{<:Number}, neighbours::AbstractVector{<:Integer}, compare::Function)
+"""
+    get_localbest(results_best::AbstractVector{<:Number}, neighbours::AbstractVector{<:Integer}, compare::Function)
+
+Returns the neighbour with the best evaluation of an particle.
+"""
+@inline function get_localbest(results_best::AbstractVector{<:Number}, neighbours::AbstractVector{<:Integer},
+                               compare::Function)
     min_idx = 1
     min_val = results_best[neighbours[min_idx]]
     for neig_idx in 2:endof(neighbours)
@@ -116,24 +142,19 @@ end
     neighbours[min_idx]
 end
 
-# function local_neighbourhood(current::Int, particle_number::Int, width=1)
-#     neighbours = collect((current-width):(current+width))
-#     neighbours[neighbours.<1] .+= particle_number
-#     neighbours[neighbours.>particle_number] .-= particle_number
-#     neighbours
-# end
-
-# global_neighbourhood(current::Int, particle_number::Int) = collect(1:particle_number)
-
 """
-    run(pso::PSO, number_of_iterations::Int, objective::Function)
+    optimize!(pso::PSO, number_of_iterations::Int; additional_arguments::Dict{Symbol, <:Any}=Dict{Symbol, Any}())
 
-
+Iterates an PSO object for `number_of_iterations`. `additional_arguments` would be applied to the objective function
+as named arguments.
 
 # Examples
 
 ```jldoctest
-julia> run()
+julia> objective = Objective(TestFunctions.sphere, 2, (-10.0, 10.0))
+julia> neighbours = GlobalNeighbourhood(20)
+julia> pso = PSO(objective, neighbours)
+julia> optimize!(pso, 10_000)
 
 ```
 """
@@ -142,13 +163,12 @@ function optimize!(pso::PSO, number_of_iterations::Int; additional_arguments::Di
         l_best = map(x -> pso.get_localbest(pso.results_best, x, pso.compare), pso.neighbours) #, neighbours.=neighbours
         rand!(pso.random_mat)
 
-        # updates
-        # velocity_matrix .= update_velocity.(position_matrix, velocity_matrix, pos_best, repeat(pos_best[:,l_best], outer=(1,N)), random_mat[:,:,1], random_mat[:,:,2]) # TODO: remove repeat
-        # position_matrix .= update_position.(position_matrix, velocity_matrix, pos_best, repeat(pos_best[:,l_best], outer=(1,N))) # TODO: remove repeat
-
         for particle_idx in 1:pso.neighbours.particle_number
-            update_velocity!(pso.position[particle_idx], pso.velocity[particle_idx], pso.pos_best[particle_idx], pso.pos_best[l_best[particle_idx]], pso.rand1[particle_idx], pso.rand2[particle_idx], pso.w, pso.c1, pso.c2)
-            update_position!(pso.position[particle_idx], pso.velocity[particle_idx], pso.pos_best[particle_idx], pso.pos_best[l_best[particle_idx]])
+            update_velocity!(pso.position[particle_idx], pso.velocity[particle_idx], pso.pos_best[particle_idx],
+                             pso.pos_best[l_best[particle_idx]], pso.rand1[particle_idx], pso.rand2[particle_idx],
+                             pso.w, pso.c1, pso.c2)
+            update_position!(pso.position[particle_idx], pso.velocity[particle_idx], pso.pos_best[particle_idx],
+                             pso.pos_best[l_best[particle_idx]])
         end
         # confinements
         for d in 1:pso.objective.number_of_dimensions
@@ -170,4 +190,21 @@ function optimize!(pso::PSO, number_of_iterations::Int; additional_arguments::Di
         pso.results_best[pso.better] = pso.results[pso.better]
         rearrange!(pso.neighbours, pso.results_best, pso.compare)
     end
+end
+
+"""
+    getoptimum(pso::PSO)
+
+Returns a tuple with the n-dimensional position of the current found optimum and the function value on this position.
+
+# Examples
+
+```jldoctest
+julia> getoptimum()
+
+```
+"""
+function getoptimum(pso::PSO)
+    all_best = get_localbest(pso.results_best, 1:pso.neighbours.particle_number, pso.compare)
+    (pso.pos_best_mat[:, all_best], pso.results_best[all_best])
 end

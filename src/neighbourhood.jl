@@ -11,7 +11,9 @@ rearrange!(n::Neighbourhood, results_best::AbstractVector{<:Number}, compare::Fu
 """
     LocalNeighbourhood
 
-The LocalNeighbourhood organizes the particle in a ring topology. For width=1 for example, each particle has three neighbours, one to the left, one to the right and itself. The width says to how many particles on the left and on the right it is connected.
+The LocalNeighbourhood organizes the particle in a ring topology. For width=1 for example,
+each particle has three neighbours, one to the left, one to the right and itself.
+The width says to how many particles on the left and on the right it is connected.
 """
 struct LocalNeighbourhood <: Neighbourhood
     particle_number::Integer
@@ -46,7 +48,14 @@ getneighbour(g::GlobalNeighbourhood, i::Integer) = g.neighbours
 """
     HierachicalNeighbourhood
 
+Inspired by this paper: https://ieeexplore.ieee.org/abstract/document/1299745/
+It arranges all particles in a tree. The parent of a node is the only neighbour. The root has itself as neighbours.
+After every iteration, the tree will be updated. Particles can climbe up and down in the tree.
 
+# Initialization
+HierachicalNeighbourhood(particle_number::Integer, branching_degree::Integer)
+HierachicalNeighbourhoodByTreeHeight(tree_height::Integer, branching_degree::Integer)
+        - The particle number results from the full tree.
 """
 struct HierachicalNeighbourhood <: Neighbourhood
     particle_number::Integer
@@ -70,6 +79,11 @@ function HierachicalNeighbourhoodByTreeHeight(tree_height::Integer, branching_de
 end
 getneighbour(g::HierachicalNeighbourhood, i::Integer) = [g.graph_to_particle[g.parent[g.particle_to_graph[i]]]]
 
+"""
+    getchilds(particle_number::T, branching_degree::T) where T <: Integer
+
+Get a list of all childs for each particle number.
+"""
 function getchilds(particle_number::T, branching_degree::T) where T <: Integer
     childs = [T[] for _ in 1:particle_number]
     last_childs = [1]
@@ -89,6 +103,11 @@ function getchilds(particle_number::T, branching_degree::T) where T <: Integer
     childs
 end
 
+"""
+    getparents(childs::AbstractVector{<:AbstractVector{<:Integer}})
+
+Get a list of parents from a list of cilds.
+"""
 function getparents(childs::AbstractVector{<:AbstractVector{<:Integer}})
     parents = ones(eltype(childs[1]), length(childs))
     for parent_index in 2:length(childs)
@@ -98,6 +117,13 @@ function getparents(childs::AbstractVector{<:AbstractVector{<:Integer}})
     return parents
 end
 
+"""
+    rearrange!(n::HierachicalNeighbourhood, personal_best::AbstractVector{<:Number}, compare::Function)
+
+If a parent node has a worse (higher or lesser) evaluation than the best child, they will be swapped.
+The tree will be checked from the top to the bottom. A particle can at most climbe one level up,
+but can travel down from the top to the bottom in one function call.
+"""
 function rearrange!(n::HierachicalNeighbourhood, personal_best::AbstractVector{<:Number}, compare::Function)
     for (parent_graph, childs_graph) in enumerate(n.childs)
         isempty(childs_graph) && continue
@@ -106,8 +132,10 @@ function rearrange!(n::HierachicalNeighbourhood, personal_best::AbstractVector{<
         child_min_graph = n.particle_to_graph[child_min_particle]
         parent_particle = n.graph_to_particle[parent_graph]
         if compare(personal_best[child_min_particle], personal_best[parent_particle])
-            n.particle_to_graph[child_min_particle], n.particle_to_graph[parent_particle] = n.particle_to_graph[parent_particle], n.particle_to_graph[child_min_particle]
-            n.graph_to_particle[child_min_graph], n.graph_to_particle[parent_graph] = n.graph_to_particle[parent_graph], n.graph_to_particle[child_min_graph]
+            n.particle_to_graph[child_min_particle], n.particle_to_graph[parent_particle] =
+                        n.particle_to_graph[parent_particle], n.particle_to_graph[child_min_particle]
+            n.graph_to_particle[child_min_graph], n.graph_to_particle[parent_graph] =
+                        n.graph_to_particle[parent_graph], n.graph_to_particle[child_min_graph]
         end
     end
 end

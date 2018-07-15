@@ -44,4 +44,4 @@ build_script:
       Pkg.clone(pwd(), \"ParticleSwarmOptimizer\"); Pkg.build(\"ParticleSwarmOptimizer\")"
 
 test_script:
-  - C:\projects\julia\bin\julia -e "Pkg.test(\"ParticleSwarmOptimizer\")"
+  - C:\projects\julia\bin\julia --check-bounds=yes --inline=no -e "Pkg.test(\"ParticleSwarmOptimizer\")"
