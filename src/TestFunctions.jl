@@ -7,7 +7,7 @@ for test functions.
 """
 module TestFunctions
 
-export sphere, rastrigin, ackley, rosenbrock, eggholder, beale, square_movingpeak, ellipse, stybliski, mccormick,
+export sphere, euclidean_distance, rastrigin, ackley, rosenbrock, eggholder, beale, square_movingpeak, ellipse, stybliski, mccormick,
        himmelblau, griewank, schafferf6
 
 """
@@ -31,11 +31,39 @@ f(0) = 0
 
 ```jldoctest
 julia> sphere([3.0, 4.0])
-5.0
+25.0
 ```
 """
 @inline function sphere(x::AbstractVector{<:Number})
     sum(x.^2)
+end
+
+"""
+    euclidean_distance(x::AbstractVector{<:Number})
+
+Calculate the square root of the squared sums from the vector `x`.
+
+### Minimum
+
+```math
+f(0) = 0
+```
+
+### Recommanded searchspace
+
+```math
+-\infty ≦ x ≦ \infty
+```
+
+### Examples
+
+```jldoctest
+julia> euclidean_distance([3.0, 4.0])
+5.0
+```
+"""
+@inline function euclidean_distance(x::AbstractVector{<:Number})
+    sqrt(sum(x.^2))
 end
 
 """

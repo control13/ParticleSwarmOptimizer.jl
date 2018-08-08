@@ -58,19 +58,21 @@ function PSO(objective::Objective, neighbours::Neighbourhood;
              additional_arguments::Dict{Symbol, <:Any}=Dict{Symbol, Any}(), compare::Function=<,
              w::Number=1.0/(2.0*log(2.0)), c1::Number=0.5 + log(2), c2::Number=c1)
 
+    return_type = eltype(objective.search_space[1])
+
     number_of_particles = length(neighbours)
     number_of_dimensions = objective.number_of_dimensions
     # Initialization - SPSO 2011 default
-    position_matrix = rand(Float64, number_of_dimensions, number_of_particles)
-    velocity_matrix = rand(Float64, number_of_dimensions, number_of_particles)
+    position_matrix = rand(return_type, number_of_dimensions, number_of_particles)
+    velocity_matrix = rand(return_type, number_of_dimensions, number_of_particles)
     position = [view(position_matrix, :, i) for i in 1:number_of_particles]
     velocity = [view(velocity_matrix, :, i) for i in 1:number_of_particles]
     position_dimension = [view(position_matrix, i, :) for i in 1:number_of_dimensions]
     velocity_dimension = [view(velocity_matrix, i, :) for i in 1:number_of_dimensions]
 
     for d in 1:length(position_dimension)
-        position_dimension[d] .= project.(position_dimension[d], 0, 1, objective.search_space[d]...)
-        velocity_dimension[d] .= project.(velocity_dimension[d], 0, 1, 
+        position_dimension[d] .= project.(position_dimension[d], zero(return_type), oneunit(return_type), objective.search_space[d]...)
+        velocity_dimension[d] .= project.(velocity_dimension[d], zero(return_type), oneunit(return_type), 
                                           objective.search_space[d][LOWER_BOUND_IDX].-position_dimension[d],
                                           objective.search_space[d][UPPER_BOUND_IDX].-position_dimension[d])
     end
@@ -83,7 +85,7 @@ function PSO(objective::Objective, neighbours::Neighbourhood;
 
     rearrange!(neighbours, results_best, compare)
 
-    random_mat = zeros(Float64, length(position_dimension), length(position), 2)
+    random_mat = zeros(typeof(w), length(position_dimension), length(position), 2)
     rand1 = [view(random_mat, :, i, 1) for i in 1:length(position)]
     rand2 = [view(random_mat, :, i, 2) for i in 1:length(position)]
 
@@ -104,7 +106,7 @@ Default equation for calculating the velocity for the next step.
 """
 @inline function update_velocity!(position::AbstractVector{T}, velocity::AbstractVector{T},
                                   personal_best::AbstractVector{T}, local_best::AbstractVector{T},
-                                  rand_a::AbstractVector{T}, rand_b::AbstractVector{T}, w::Number, c1::Number,
+                                  rand_a::AbstractVector{<:Number}, rand_b::AbstractVector{<:Number}, w::Number, c1::Number,
                                   c2::Number) where T<:Number
     velocity .= w.*velocity .+ c1.*rand_a.*(personal_best .- position) .+ c2.*rand_b.*(local_best .- position)
 end
