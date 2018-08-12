@@ -23,11 +23,13 @@ const UPPER_BOUND_IDX = 2
 
 Packs all data for the pso.
 """
-struct PSO
+mutable struct PSO
     objective::Objective
     w::Number
     c1::Number
     c2::Number
+
+    iterations::Integer
 
     position_matrix::AbstractMatrix{<:Number}
     velocity_matrix::AbstractMatrix{<:Number}
@@ -91,7 +93,7 @@ function PSO(objective::Objective, neighbours::Neighbourhood;
 
     better = BitArray(length(position))
 
-    PSO(objective, w, c1, c2, position_matrix, velocity_matrix, position, velocity, position_dimension,
+    PSO(objective, w, c1, c2, 0, position_matrix, velocity_matrix, position, velocity, position_dimension,
         velocity_dimension, results, pos_best_mat, pos_best, results_best, random_mat, rand1, rand2, update_velocity!,
         update_position!, get_localbest, neighbours, better, compare)
 end
@@ -191,6 +193,7 @@ function optimize!(pso::PSO, number_of_iterations::Int; additional_arguments::Di
 
         pso.results_best[pso.better] = pso.results[pso.better]
         rearrange!(pso.neighbours, pso.results_best, pso.compare)
+        pso.iterations += 1
     end
 end
 

@@ -4,6 +4,7 @@
         @test ln[2] == [1, 2, 3]
         @test ln[5] == [4, 5, 1]
         @test length(ln) == 5
+        @test_throws AssertionError pso.LocalNeighbourhood(5, 4)
     end
 
     @testset "GlobalNeighbourhood" begin

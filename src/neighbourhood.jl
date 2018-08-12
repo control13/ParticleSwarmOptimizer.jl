@@ -20,6 +20,7 @@ struct LocalNeighbourhood <: Neighbourhood
     neighbours::AbstractVector{<:AbstractVector{<:Integer}}
 end
 function LocalNeighbourhood(particle_number::Integer, width::Integer=1)
+    @assert (particle_number ≥ 2*width + 1) "For $particle_number particles the width can be $(Int(round((particle_number-1)/2))) at most."
     all_neigs = Vector{Vector{Int}}(particle_number)
     for current in 1:particle_number
         neighbours = collect((current-width):(current+width))
