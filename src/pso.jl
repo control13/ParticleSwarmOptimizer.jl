@@ -58,23 +58,21 @@ mutable struct PSO
 end
 function PSO(objective::Objective, neighbours::Neighbourhood;
              additional_arguments::Dict{Symbol, <:Any}=Dict{Symbol, Any}(), compare::Function=<,
-             w::Number=1.0/(2.0*log(2.0)), c1::Number=0.5 + log(2), c2::Number=c1)
-
-    return_type = eltype(objective.search_space[1])
+             w::Number=1.0/(2.0*log(2.0)), c1::Number=0.5 + log(2), c2::Number=c1, space_type::Type=eltype(objective.search_space[1]))
 
     number_of_particles = length(neighbours)
     number_of_dimensions = objective.number_of_dimensions
     # Initialization - SPSO 2011 default
-    position_matrix = rand(return_type, number_of_dimensions, number_of_particles)
-    velocity_matrix = rand(return_type, number_of_dimensions, number_of_particles)
+    position_matrix = rand(space_type, number_of_dimensions, number_of_particles)
+    velocity_matrix = rand(space_type, number_of_dimensions, number_of_particles)
     position = [view(position_matrix, :, i) for i in 1:number_of_particles]
     velocity = [view(velocity_matrix, :, i) for i in 1:number_of_particles]
     position_dimension = [view(position_matrix, i, :) for i in 1:number_of_dimensions]
     velocity_dimension = [view(velocity_matrix, i, :) for i in 1:number_of_dimensions]
 
     for d in 1:length(position_dimension)
-        position_dimension[d] .= project.(position_dimension[d], zero(return_type), oneunit(return_type), objective.search_space[d]...)
-        velocity_dimension[d] .= project.(velocity_dimension[d], zero(return_type), oneunit(return_type), 
+        position_dimension[d] .= project.(position_dimension[d], zero(space_type), oneunit(space_type), objective.search_space[d]...)
+        velocity_dimension[d] .= project.(velocity_dimension[d], zero(space_type), oneunit(space_type), 
                                           objective.search_space[d][LOWER_BOUND_IDX].-position_dimension[d],
                                           objective.search_space[d][UPPER_BOUND_IDX].-position_dimension[d])
     end
@@ -167,7 +165,7 @@ function optimize!(pso::PSO, number_of_iterations::Int; additional_arguments::Di
         l_best = map(x -> pso.get_localbest(pso.results_best, x, pso.compare), pso.neighbours) #, neighbours.=neighbours
         rand!(pso.random_mat)
 
-        for particle_idx in 1:pso.neighbours.particle_number
+        for particle_idx in eachindex(pso.position)
             update_velocity!(pso.position[particle_idx], pso.velocity[particle_idx], pso.pos_best[particle_idx],
                              pso.pos_best[l_best[particle_idx]], pso.rand1[particle_idx], pso.rand2[particle_idx],
                              pso.w, pso.c1, pso.c2)
@@ -176,11 +174,16 @@ function optimize!(pso::PSO, number_of_iterations::Int; additional_arguments::Di
         end
         # confinements
         for d in 1:pso.objective.number_of_dimensions
-            lower = pso.position_dimension[d].<pso.objective.search_space[d][LOWER_BOUND_IDX]
-            greater = pso.position_dimension[d].>pso.objective.search_space[d][UPPER_BOUND_IDX]
-            pso.velocity_dimension[d][lower .| greater] .*= -0.5
-            pso.position_dimension[d][lower] = pso.objective.search_space[d][LOWER_BOUND_IDX]
-            pso.position_dimension[d][greater] = pso.objective.search_space[d][UPPER_BOUND_IDX]
+            for particle_idx in eachindex(pso.position)
+                if pso.position_dimension[d][particle_idx] < pso.objective.search_space[d][LOWER_BOUND_IDX]
+                    pso.velocity_dimension[d][particle_idx] *= -0.5
+                    pso.position_dimension[d][particle_idx] = pso.objective.search_space[d][LOWER_BOUND_IDX]
+                end
+                if pso.position_dimension[d][particle_idx] > pso.objective.search_space[d][UPPER_BOUND_IDX]
+                    pso.velocity_dimension[d][particle_idx] *= -0.5
+                    pso.position_dimension[d][particle_idx] = pso.objective.search_space[d][UPPER_BOUND_IDX]
+                end
+            end
         end
 
         # multiplies every element, which is outside of the search space with 0.5, uses true == 1 and false == 0 and (1*3 - 1)/2 == 1 and (0*3 - 1)/2 == -0.5
@@ -188,7 +191,10 @@ function optimize!(pso::PSO, number_of_iterations::Int; additional_arguments::Di
 
         # evaluation
         pso.results .= pso.objective.fun.(pso.position; additional_arguments...)
-        pso.better .= pso.compare.(pso.results, pso.results_best)
+        # pso.better .= pso.compare.(pso.results, pso.results_best)
+        for d in eachindex(pso.better)
+            pso.better[d] = pso.compare(pso.results[d], pso.results_best[d])
+        end
         pso.pos_best_mat[:,pso.better] = pso.position_matrix[:,pso.better]
 
         pso.results_best[pso.better] = pso.results[pso.better]

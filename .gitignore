@@ -8,6 +8,7 @@ docs/site/
 
 # project specific
 src/work.jl
+src/runtime_memory_check.jl
 
 # ipython/ijulia notebooks
 .ipynb_checkpoints
