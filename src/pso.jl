@@ -37,7 +37,6 @@ mutable struct PSO
     velocity::AbstractVector{<:AbstractVector{<:Number}}
     position_dimension::AbstractVector{<:AbstractVector{<:Number}}
     velocity_dimension::AbstractVector{<:AbstractVector{<:Number}}
-    results::AbstractVector{<:Number}
 
     pos_best_mat::AbstractMatrix{<:Number}
     pos_best::AbstractVector{<:AbstractVector{<:Number}}
@@ -49,10 +48,10 @@ mutable struct PSO
 
     update_velocity!::Function
     update_position!::Function
+    confinement!::Function
     get_localbest::Function
 
     neighbours::Neighbourhood
-    better::BitVector
 
     compare::Function
 end
@@ -77,11 +76,10 @@ function PSO(objective::Objective, neighbours::Neighbourhood;
                                           objective.search_space[d][UPPER_BOUND_IDX].-position_dimension[d])
     end
 
-    results = objective.fun.(position; additional_arguments...)
+    results_best = objective.fun.(position; additional_arguments...)
 
     pos_best_mat = copy(position_matrix)
     pos_best = [view(pos_best_mat, :, i) for i in 1:length(position)]
-    results_best = copy(results)
 
     rearrange!(neighbours, results_best, compare)
 
@@ -89,11 +87,9 @@ function PSO(objective::Objective, neighbours::Neighbourhood;
     rand1 = [view(random_mat, :, i, 1) for i in 1:length(position)]
     rand2 = [view(random_mat, :, i, 2) for i in 1:length(position)]
 
-    better = BitArray(length(position))
-
     PSO(objective, w, c1, c2, 0, position_matrix, velocity_matrix, position, velocity, position_dimension,
-        velocity_dimension, results, pos_best_mat, pos_best, results_best, random_mat, rand1, rand2, update_velocity!,
-        update_position!, get_localbest, neighbours, better, compare)
+        velocity_dimension, pos_best_mat, pos_best, results_best, random_mat, rand1, rand2, update_velocity!,
+        update_position!, confinement!, get_localbest, neighbours, compare)
 end
 
 # update functions
@@ -108,7 +104,11 @@ Default equation for calculating the velocity for the next step.
                                   personal_best::AbstractVector{T}, local_best::AbstractVector{T},
                                   rand_a::AbstractVector{<:Number}, rand_b::AbstractVector{<:Number}, w::Number, c1::Number,
                                   c2::Number) where T<:Number
-    velocity .= w.*velocity .+ c1.*rand_a.*(personal_best .- position) .+ c2.*rand_b.*(local_best .- position)
+    # @. velocity = w*velocity + c1*rand_a*(personal_best - position) + c2*rand_b*(local_best - position)
+    @inbounds for pidx in eachindex(velocity)
+        velocity[pidx] = w*velocity[pidx] + c1*rand_a[pidx]*(personal_best[pidx] - position[pidx]) + c2*rand_b[pidx]*(local_best[pidx] - position[pidx])
+    end
+    return
 end
 
 # @inline function update_velocity_geometric!(position::AbstractVector{T}, velocity::AbstractVector{T}, personal_best::AbstractVector{T}, local_best::AbstractVector{T}, rand_a::AbstractVector{T}, rand_b::AbstractVector{T}, w::Number, c1::Number, c2::Number) where T<:Number
@@ -126,6 +126,20 @@ Default update of the next position.
     position .+= velocity
 end
 
+@inline function confinement!(position::AbstractVector{T}, velocity::AbstractVector{T}, limits::AbstractVector{<:Tuple{T,T}}) where T<:Number
+    @inbounds for d in eachindex(position)
+        if position[d] < limits[d][LOWER_BOUND_IDX]
+            velocity[d] *= -0.5
+            position[d] = limits[d][LOWER_BOUND_IDX]
+        end
+        if position[d] > limits[d][UPPER_BOUND_IDX]
+            velocity[d] *= -0.5
+            position[d] = limits[d][UPPER_BOUND_IDX]
+        end
+    end
+    return nothing
+end
+
 """
     get_localbest(results_best::AbstractVector{<:Number}, neighbours::AbstractVector{<:Integer}, compare::Function)
 
@@ -134,8 +148,8 @@ Returns the neighbour with the best evaluation of an particle.
 @inline function get_localbest(results_best::AbstractVector{<:Number}, neighbours::AbstractVector{<:Integer},
                                compare::Function)
     min_idx = 1
-    min_val = results_best[neighbours[min_idx]]
-    for neig_idx in 2:endof(neighbours)
+    @inbounds min_val = results_best[neighbours[min_idx]]
+    @inbounds for neig_idx in 2:endof(neighbours)
         if compare(results_best[neighbours[neig_idx]], min_val)
             min_idx = neig_idx
             min_val = results_best[neighbours[neig_idx]]
@@ -143,7 +157,6 @@ Returns the neighbour with the best evaluation of an particle.
     end
     neighbours[min_idx]
 end
-
 """
     optimize!(pso::PSO, number_of_iterations::Int; additional_arguments::Dict{Symbol, <:Any}=Dict{Symbol, Any}())
 
@@ -161,43 +174,30 @@ julia> optimize!(pso, 10_000)
 ```
 """
 function optimize!(pso::PSO, number_of_iterations::Int; additional_arguments::Dict{Symbol, <:Any}=Dict{Symbol, Any}())
+    num_particles = pso.neighbours.particle_number
+    num_dims = pso.objective.number_of_dimensions
     for iter in 1:number_of_iterations
-        l_best = map(x -> pso.get_localbest(pso.results_best, x, pso.compare), pso.neighbours) #, neighbours.=neighbours
         rand!(pso.random_mat)
 
-        for particle_idx in eachindex(pso.position)
-            update_velocity!(pso.position[particle_idx], pso.velocity[particle_idx], pso.pos_best[particle_idx],
-                             pso.pos_best[l_best[particle_idx]], pso.rand1[particle_idx], pso.rand2[particle_idx],
-                             pso.w, pso.c1, pso.c2)
-            update_position!(pso.position[particle_idx], pso.velocity[particle_idx], pso.pos_best[particle_idx],
-                             pso.pos_best[l_best[particle_idx]])
+        @inbounds for particle_idx in 1:num_particles
+            l_best = pso.get_localbest(pso.results_best,  pso.neighbours[particle_idx], pso.compare)
+            pso.update_velocity!(pso.position[particle_idx], pso.velocity[particle_idx], pso.pos_best[particle_idx],
+                             pso.pos_best[l_best], pso.rand1[particle_idx], pso.rand2[particle_idx],
+                             pso.w, pso.c1, pso.c2) # TODO: faster!
+            pso.update_position!(pso.position[particle_idx], pso.velocity[particle_idx], pso.pos_best[particle_idx],
+                             pso.pos_best[l_best])
+            confinement!(pso.position[particle_idx], pso.velocity[particle_idx], pso.objective.search_space)
         end
-        # confinements
-        for d in 1:pso.objective.number_of_dimensions
-            for particle_idx in eachindex(pso.position)
-                if pso.position_dimension[d][particle_idx] < pso.objective.search_space[d][LOWER_BOUND_IDX]
-                    pso.velocity_dimension[d][particle_idx] *= -0.5
-                    pso.position_dimension[d][particle_idx] = pso.objective.search_space[d][LOWER_BOUND_IDX]
-                end
-                if pso.position_dimension[d][particle_idx] > pso.objective.search_space[d][UPPER_BOUND_IDX]
-                    pso.velocity_dimension[d][particle_idx] *= -0.5
-                    pso.position_dimension[d][particle_idx] = pso.objective.search_space[d][UPPER_BOUND_IDX]
-                end
+
+        # evaluation
+        @inbounds for particle_number in eachindex(pso.position)
+            result = pso.objective.fun(pso.position[particle_number]; additional_arguments...)
+            if pso.compare(result, pso.results_best[particle_number])
+                pso.pos_best[particle_number] .= pso.position[particle_number]
+                pso.results_best[particle_number] = result
             end
         end
 
-        # multiplies every element, which is outside of the search space with 0.5, uses true == 1 and false == 0 and (1*3 - 1)/2 == 1 and (0*3 - 1)/2 == -0.5
-        # velocity_matrix .*= (((position_matrix.>search_space[1]) .& (position_matrix.<search_space[2])) .*3.0 .- 1.0) ./2.0
-
-        # evaluation
-        pso.results .= pso.objective.fun.(pso.position; additional_arguments...)
-        # pso.better .= pso.compare.(pso.results, pso.results_best)
-        for d in eachindex(pso.better)
-            pso.better[d] = pso.compare(pso.results[d], pso.results_best[d])
-        end
-        pso.pos_best_mat[:,pso.better] = pso.position_matrix[:,pso.better]
-
-        pso.results_best[pso.better] = pso.results[pso.better]
         rearrange!(pso.neighbours, pso.results_best, pso.compare)
         pso.iterations += 1
     end

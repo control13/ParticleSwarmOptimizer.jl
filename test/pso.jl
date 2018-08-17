@@ -13,6 +13,13 @@
     #     Optimizers.update_velocity!([1.0, 2.0], velocity, )
     #     @test velocity == [1.75, 1.75]
     # end
+    @testset "confinements" begin
+        position = [6.0, 2.0]
+        velocity = [1.0, -2.0]
+        pso.confinement!(position, velocity, [(-5.0, 5.0), (-5.0, 5.0)])
+        @test position == [5.0, 2.0]
+        @test velocity == [-0.5, -2.0]
+    end
     @testset "get_localbest" begin
         @test pso.get_localbest([0.2, 0.5, 0.6, 0.1], [1, 3], <) == 1
         @test pso.get_localbest([0.2, 0.5, 0.6, 0.1], [1, 3], >) == 3
