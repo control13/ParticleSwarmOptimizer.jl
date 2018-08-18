@@ -95,7 +95,7 @@ julia> rastrigin([0,0])
 0
 ```
 """
-@inline function rastrigin(x::AbstractVector{<:Number}; A::Number = 10.0)
+@inline function rastrigin(x::AbstractVector{<:Number}; A::Number = 10)
     A*length(x) + sum(x.^2 - A.*cos.(2π.*x))
 end
 
@@ -125,7 +125,7 @@ julia> ackley(0.0, 0.0)
 """
 @inline function ackley(x::AbstractVector{<:Number})
     # -20.0*e^(-0.2*sqrt((x^2 + y^2)/2.0)) - e^((cos(2π*x) + cos(2π*y))/2.0) + e + 20.0
-    -20.0*e^(-0.2*sqrt(sum(x.^2)/length(x))) - e^(sum(cos.(2π.*x))/length(x)) + e + 20.0
+    -20*e^(-0.2*sqrt(sum(x.^2)/length(x))) - e^(sum(cos.(2π.*x))/length(x)) + e + 20
 end
 # @inline ackley(x::AbstractVector{<:Number}) = ackley(x[1], x[2])
 
@@ -154,7 +154,7 @@ julia> rosenbrock([1.0,1.0])
 ```
 """
 function rosenbrock(x::AbstractVector{<:Number})
-    s = 0.0
+    s = zero(eltype(x))
     @inbounds for i in 1:(length(x)-1)
         s += 100*(x[i+1] - x[i]*x[i])^2 + (x[i] - 1)^2
     end
@@ -244,7 +244,7 @@ julia> moving_peak([0.0, 0.0], optimum=[1.0, 1.0])
 1.4142135623730951
 ```
 """
-@inline function square_movingpeak(x::AbstractVector{<:Number}; optimum::Vector{<:Number}=[0.0, 0.0])
+@inline function square_movingpeak(x::AbstractVector{<:Number}; optimum::Vector{<:Number}=[0, 0])
     sphere(x.-optimum)
 end
 
