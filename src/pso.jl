@@ -103,11 +103,9 @@ Default equation for calculating the velocity for the next step.
                                   rand_a::AbstractVector{C}, rand_b::AbstractVector{C},
                                   coefficients::AbstractVector{C}) where T<:Number where C<:Number
     w, c1, c2 = coefficients
-    # @inbounds for pidx in eachindex(velocity)
-        # velocity[pidx] = w*velocity[pidx] + c1*rand_a[pidx]*(personal_best[pidx] - position[pidx]) + c2*rand_b[pidx]*(local_best[pidx] - position[pidx])
-        # @. velocity = w*velocity + c1*rand_a*(personal_best - position) + c2*rand_b*(local_best - position)
-        @. velocity = w*velocity + c1*rand_a*(personal_best - position) + c2*rand_b*(local_best - position)
-    # end
+    @inbounds for pidx in eachindex(velocity)
+        velocity[pidx] = w*velocity[pidx] + c1*rand_a[pidx]*(personal_best[pidx] - position[pidx]) + c2*rand_b[pidx]*(local_best[pidx] - position[pidx])
+    end
     return
 end
 
@@ -164,12 +162,13 @@ Returns the neighbour with the best evaluation of an particle.
     return neighbours[min_idx]
 end
 
-function evaluate!(position::AbstractVector{T}, results_best::AbstractVector{<:Number}, pos_best::AbstractVector{T}, idx::Int, cmp::Function, obj::Function) where T<:Number
+@inline function evaluate!(position::AbstractVector{T}, results_best::AbstractVector{<:Number}, pos_best::AbstractVector{T}, idx::Int, cmp::Function, obj::Function) where T<:Number
     result = obj(position)
     if cmp(result, results_best[idx])
-        pos_best .= position
+        copy!(pos_best, position)
         results_best[idx] = result
     end
+    return
 end
 
 """
@@ -188,7 +187,7 @@ julia> optimize!(pso, 10_000)
 
 ```
 """
-function optimize!(pso::PSO{T, C, R, I}, number_of_iterations::I; additional_arguments::Dict{Symbol, <:Any}=Dict{Symbol, Any}()) where {T, C, R, I<:Integer}
+function optimize!(pso::PSO{T, C, R, I}, number_of_iterations::I) where {T, C, R, I<:Integer}
     num_particles::Int = pso.neighbours.particle_number
 
     for iter in one(I):number_of_iterations
@@ -223,7 +222,7 @@ julia> getoptimum()
 
 ```
 """
-function getoptimum(pso::PSO)
-    all_best = get_localbest(pso.results_best, 1:pso.neighbours.particle_number, pso.compare)
+@inline function getoptimum(pso::PSO{T, C, R, I})  where {T, C, R, I<:Integer}
+    all_best = get_localbest(pso.results_best, one(I):pso.neighbours.particle_number, pso.compare)
     return (pso.pos_best_mat[:, all_best], pso.results_best[all_best])
 end
