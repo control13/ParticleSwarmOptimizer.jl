@@ -1,11 +1,13 @@
 export Neighbourhood, LocalNeighbourhood, GlobalNeighbourhood, HierachicalNeighbourhood
 
-abstract type Neighbourhood <: AbstractVector{AbstractVector{<:Integer}} end
+abstract type Neighbourhood{I} <: AbstractVector{AbstractVector{I<:Integer}} end
+# Base.eltype(::Type{<:Neighbourhood{I}}) = I
+# Base.eltype(n::Neighbourhood{I}) = I
 Base.IndexStyle(::Type{<:Neighbourhood}) = IndexLinear()
 Base.size(n::Neighbourhood) = (n.particle_number,)
 Base.length(n::Neighbourhood) = n.particle_number
-Base.getindex(n::Neighbourhood, i::Int) = getneighbour(n, i)
-Base.setindex!(n::Neighbourhood, v, i::Int) = error("Not supported!")
+Base.getindex(n::Neighbourhood, i::Integer) = getneighbour(n, i)
+Base.setindex!(n::Neighbourhood, v, i::Integer) = error("Not supported!")
 rearrange!(n::Neighbourhood, results_best::AbstractVector{<:Number}, compare::Function) = nothing
 
 """
@@ -15,16 +17,16 @@ The LocalNeighbourhood organizes the particle in a ring topology. For width=1 fo
 each particle has three neighbours, one to the left, one to the right and itself.
 The width says to how many particles on the left and on the right it is connected.
 """
-struct LocalNeighbourhood <: Neighbourhood
-    particle_number::Integer
-    neighbours::AbstractVector{<:AbstractVector{<:Integer}}
+struct LocalNeighbourhood{I} <: Neighbourhood{I}
+    particle_number::I
+    neighbours::AbstractVector{<:AbstractVector{<:I}}
 end
-function LocalNeighbourhood(particle_number::Integer, width::Integer=1)
+function LocalNeighbourhood(particle_number::I, width::I=one(I)) where I <: Integer
     @assert (particle_number ≥ 2*width + 1) "For $particle_number particles the width can be $(Int(round((particle_number-1)/2))) at most."
-    all_neigs = Vector{Vector{Int}}(particle_number)
-    for current in 1:particle_number
+    all_neigs = Vector{Vector{I}}(particle_number)
+    for current in one(particle_number):particle_number
         neighbours = collect((current-width):(current+width))
-        neighbours[neighbours.<1] .+= particle_number
+        neighbours[neighbours.<one(I)] .+= particle_number
         neighbours[neighbours.>particle_number] .-= particle_number
         all_neigs[current] = neighbours
     end
@@ -37,12 +39,12 @@ getneighbour(l::LocalNeighbourhood, i::Integer) = l.neighbours[i]
 
 In the GlobalNeighbourhood all particle are connected to all other particles.
 """
-struct GlobalNeighbourhood <: Neighbourhood
-    particle_number::Integer
-    neighbours::AbstractVector{<:Integer}
+struct GlobalNeighbourhood{I} <: Neighbourhood{I}
+    particle_number::I
+    neighbours::AbstractVector{<:I}
 end
 function GlobalNeighbourhood(particle_number::Integer)
-    GlobalNeighbourhood(particle_number, collect(1:particle_number))
+    GlobalNeighbourhood(particle_number, collect(one(particle_number):particle_number))
 end
 getneighbour(g::GlobalNeighbourhood, i::Integer) = g.neighbours
 
@@ -58,24 +60,24 @@ HierachicalNeighbourhood(particle_number::Integer, branching_degree::Integer)
 HierachicalNeighbourhoodByTreeHeight(tree_height::Integer, branching_degree::Integer)
         - The particle number results from the full tree.
 """
-struct HierachicalNeighbourhood <: Neighbourhood
-    particle_number::Integer
-    branching_degree::Integer
-    childs::AbstractVector{<:AbstractVector{<:Integer}}
-    parent::AbstractVector{<:Integer}
-    particle_to_graph::AbstractVector{<:Integer}
-    graph_to_particle::AbstractVector{<:Integer}
+struct HierachicalNeighbourhood{I} <: Neighbourhood{I}
+    particle_number::I
+    branching_degree::I
+    childs::AbstractVector{<:AbstractVector{<:I}}
+    parent::AbstractVector{<:I}
+    particle_to_graph::AbstractVector{<:I}
+    graph_to_particle::AbstractVector{<:I}
 end
-function HierachicalNeighbourhood(particle_number::Integer, branching_degree::Integer)
+function HierachicalNeighbourhood(particle_number::I, branching_degree::I) where I<:Integer
     # @assert particle_number ≤ max_particle_number "With d=$branching_degree and h=$tree_height you can use $max_particle_number particles at most."
     childs = getchilds(particle_number, branching_degree)
     parent = getparents(childs)
-    particle_to_graph = collect(1:particle_number)
-    graph_to_particle = collect(1:particle_number)
+    particle_to_graph = collect(one(I):particle_number)
+    graph_to_particle = collect(one(I):particle_number)
     HierachicalNeighbourhood(particle_number, branching_degree, childs, parent, particle_to_graph, graph_to_particle)
 end
-function HierachicalNeighbourhoodByTreeHeight(tree_height::Integer, branching_degree::Integer)
-    particle_number = convert(Int, (branching_degree^tree_height - 1)/(branching_degree - 1))
+function HierachicalNeighbourhoodByTreeHeight(tree_height::I, branching_degree::I) where I<:Integer
+    particle_number = convert(Int, (branching_degree^tree_height - one(I))/(branching_degree - one(I)))
     HierachicalNeighbourhood(particle_number, branching_degree)
 end
 getneighbour(g::HierachicalNeighbourhood, i::Integer) = [g.graph_to_particle[g.parent[g.particle_to_graph[i]]]]
@@ -85,21 +87,21 @@ getneighbour(g::HierachicalNeighbourhood, i::Integer) = [g.graph_to_particle[g.p
 
 Get a list of all childs for each particle number.
 """
-function getchilds(particle_number::T, branching_degree::T) where T <: Integer
-    childs = [T[] for _ in 1:particle_number]
-    last_childs = [1]
-    cummmulative_width = 1
-    current_height = 1
+function getchilds(particle_number::I, branching_degree::I) where I <: Integer
+    childs = [I[] for _ in one(I):particle_number]
+    last_childs = [one(I)]
+    cummmulative_width = one(I)
+    current_height = one(I)
     while true
         width = branching_degree^current_height
-        for current_branch in 1:width
+        for current_branch in one(I):width
             child_index = cummmulative_width + current_branch
             child_index > particle_number && return childs
-            push!(childs[last_childs[(current_branch - 1) % length(last_childs) + 1]], child_index)
+            push!(childs[last_childs[(current_branch - one(I)) % length(last_childs) + one(I)]], child_index)
         end
         last_childs = vcat(childs[last_childs]...)
         cummmulative_width += width
-        current_height += 1
+        current_height += one(I)
     end
     childs
 end
@@ -109,9 +111,9 @@ end
 
 Get a list of parents from a list of cilds.
 """
-function getparents(childs::AbstractVector{<:AbstractVector{<:Integer}})
-    parents = ones(eltype(childs[1]), length(childs))
-    for parent_index in 2:length(childs)
+function getparents(childs::AbstractVector{<:AbstractVector{<:I}}) where I<:Integer
+    parents = ones(eltype(childs[one(I)]), length(childs))
+    for parent_index in (one(I)+one(I)):length(childs)
         isempty(childs[parent_index]) && continue
         parents[childs[parent_index]] = parent_index
     end
