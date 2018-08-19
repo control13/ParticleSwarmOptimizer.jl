@@ -29,10 +29,12 @@ const tfn = pso.TestFunctions
 
     @testset "eggholder function" begin
         @test tfn.eggholder(512, 404.2319) ≈ -959.6407 atol=0.0001
+        @test tfn.eggholder([512, 404.2319]) ≈ -959.6407 atol=0.0001
     end
 
     @testset "beale function" begin
         @test tfn.beale(3, 0.5) == 0
+        @test tfn.beale([3, 0.5]) == 0
     end
 
     @testset "square_movingpeak function" begin
@@ -44,6 +46,7 @@ const tfn = pso.TestFunctions
 
     @testset "ellipse function" begin
         @test tfn.ellipse(-0.5, -1.5) == 0
+        @test tfn.ellipse([-0.5, -1.5]) == 0
     end
 
     @testset "stybliski function" begin
@@ -54,12 +57,14 @@ const tfn = pso.TestFunctions
 
     @testset "mccormick function" begin
         @test tfn.mccormick(0, 0) == 1
+        @test tfn.mccormick([0, 0]) == 1
         @test tfn.mccormick(-0.54719, -1.54719) ≈ -1.9133 atol=0.0001
     end
 
     @testset "himmelblau function" begin
         @test tfn.himmelblau(-0.270845, -0.923039) ≈ 181.617 atol=0.001
         @test tfn.himmelblau(3, 2) ≈ 0
+        @test tfn.himmelblau([3, 2]) ≈ 0
         @test tfn.himmelblau(-2.805118,  3.131312) ≈ 0 atol=0.0001
         @test tfn.himmelblau(-3.77931 , -3.283186) ≈ 0 atol=0.0001
         @test tfn.himmelblau( 3.584428, -1.848126) ≈ 0 atol=0.0001
@@ -70,6 +75,7 @@ const tfn = pso.TestFunctions
     end
 
     @testset "schafferf6 function" begin
+        @test tfn.schafferf6(0, 0) == 0
         @test tfn.schafferf6([0, 0]) == 0
     end
 

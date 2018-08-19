@@ -272,7 +272,7 @@ julia> ellipse(-0.5, -1.5)
 @inline function ellipse(x::Number, y::Number; a::Number=-2, b::Number=1)
     (x + y - a)*(x + y - a)/100 + (x - y - b)*(x - y - b)*100
 end
-@inline ellipse(x::AbstractVector{Number}; a::Number=-2, b::Number=1) = ellipse(x[1], x[2], a=a, b=b)
+@inline ellipse(x::AbstractVector{<:Number}; a::Number=-2, b::Number=1) = ellipse(x[1], x[2], a=a, b=b)
 
 """
     stybliski(x::AbstractVector{<:Number})

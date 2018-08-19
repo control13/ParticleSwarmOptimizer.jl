@@ -20,6 +20,15 @@
         @test position == [5.0, 2.0]
         @test velocity == [-0.5, -2.0]
     end
+    @testset "evaluate" begin
+        position = [1.0, 1.0]
+        pos_best = [2.0, -2.0]
+        res_best = [4.0, 3.0, pso.TestFunctions.sphere(pos_best), 5.0]
+        pso.evaluate!(position, res_best, pos_best, 3, <, pso.TestFunctions.sphere)
+        @test position == [1.0, 1.0]
+        @test pos_best == [1.0, 1.0]
+        @test res_best == [4.0, 3.0, pso.TestFunctions.sphere(position), 5.0]
+    end
     @testset "get_localbest" begin
         @test pso.get_localbest([0.2, 0.5, 0.6, 0.1], [1, 3], <) == 1
         @test pso.get_localbest([0.2, 0.5, 0.6, 0.1], [1, 3], >) == 3

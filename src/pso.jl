@@ -162,9 +162,14 @@ Returns the neighbour with the best evaluation of an particle.
     return neighbours[min_idx]
 end
 
+"""
+    evaluate!(position::AbstractVector{T}, results_best::AbstractVector{<:Number}, pos_best::AbstractVector{T}, idx::Int, cmp::Function, obj::Function) where T<:Number
+
+Evaluates the a particle `position` and copies it to the particles memory if the compare function `cmp` says true. To the compare funciton the result from  objective function is applied as first argument, the current best evaluation value as second argument.
+"""
 @inline function evaluate!(position::AbstractVector{T}, results_best::AbstractVector{<:Number}, pos_best::AbstractVector{T}, idx::Int, cmp::Function, obj::Function) where T<:Number
     result = obj(position)
-    if cmp(result, results_best[idx])
+    @inbounds if cmp(result, results_best[idx])
         copy!(pos_best, position)
         results_best[idx] = result
     end

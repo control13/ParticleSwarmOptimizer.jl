@@ -37,8 +37,19 @@ julia> circle_position(10)
 [-1.0, 0.0]
 ```
 """
-function circle_position(t::Int;
-                         radius::Number=1.0, center::AbstractVector{<:Number}=[0.0, 0.0], number_of_points::Integer=20)
+function circle_position(t::I;
+                         radius::Number=1.0, center::AbstractVector{<:Number}=[0.0, 0.0], number_of_points::I=20) where I<:Integer
     x = t/number_of_points * 2π
     radius.*[cos(x), sin(x)] .+ center
+end
+
+"""
+    function swap!(vec::AbstractVector, i::I, j::I) where I<:Integer
+
+Fast swap of the elements `i` with the element `j` in a Vector `vec`.
+WARNING: No bounds check will be applied for performance reasons.
+"""
+@inline function swap!(vec::AbstractVector, i::I, j::I) where I<:Integer
+    @inbounds vec[i], vec[j] = vec[j], vec[i]
+    return
 end

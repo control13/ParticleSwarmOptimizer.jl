@@ -16,6 +16,19 @@
     end
 
     @testset "HirachicalNeighbourhood" begin
+        hn = pso.HierachicalNeighbourhood(21, 4)
+        @testset "bestchild" begin
+            @test pso.bestchild(hn.graph_to_particle, hn.childs[1], vcat(1.0, 0.0, fill(1.0, 19)), <) == 2
+            @test pso.bestchild(hn.graph_to_particle, hn.childs[1], vcat(0.0, 1.0, fill(0.0, 19)), <) == 3
+        end
+        @testset "swapifnecessary" begin
+            pso.swapifnecessary!(hn, fill(0.0, 21), 2, 1, 2, 1, <)
+            @test hn.particle_to_graph == collect(1:21)
+            @test hn.graph_to_particle == collect(1:21)
+            pso.swapifnecessary!(hn, vcat(1.0, fill(0.0, 20)), 2, 1, 2, 1, <)
+            @test hn.particle_to_graph == vcat(2, 1, collect(3:21))
+            @test hn.graph_to_particle == vcat(2, 1, collect(3:21))
+        end
         childs = pso.getchilds(4, 2)
         @test childs == [[2, 3], [4], Int[], Int[]]
         @test pso.getparents(childs) == [1, 1, 1, 2]
