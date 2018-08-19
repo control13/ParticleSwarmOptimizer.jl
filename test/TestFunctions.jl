@@ -8,6 +8,13 @@ const tfn = pso.TestFunctions
         @test tfn.sphere(zeros(Vector{Float64}(10))) == 0
         @test tfn.sphere([3.0, 4.0]) == 25
     end
+    
+    @testset "euclidean_distance function" begin
+        @test tfn.euclidean_distance([0]) == 0
+        @test tfn.euclidean_distance([0.0]) == 0
+        @test tfn.euclidean_distance(zeros(Vector{Float64}(10))) == 0
+        @test tfn.euclidean_distance([3.0, 4.0]) == 5
+    end
 
     @testset "rastrigin function" begin
         @test tfn.rastrigin([0]) == 0

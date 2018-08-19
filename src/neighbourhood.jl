@@ -104,7 +104,6 @@ function getchilds(particle_number::I, branching_degree::I) where I <: Integer
         cummmulative_width += width
         current_height += one(I)
     end
-    childs
 end
 
 """

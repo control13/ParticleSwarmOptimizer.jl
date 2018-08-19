@@ -1,6 +1,8 @@
 @testset "neighbourhood" begin
     @testset "LocalNeighbourhood" begin
         ln = pso.LocalNeighbourhood(5)
+        @test_throws ErrorException ln[1] = [1, 2, 3]
+        @test IndexStyle(ln) == IndexLinear()
         @test ln[2] == [1, 2, 3]
         @test ln[5] == [4, 5, 1]
         @test length(ln) == 5
