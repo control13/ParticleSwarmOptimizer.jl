@@ -18,8 +18,5 @@
         vec2 = [1]
         pso.swap!(vec2, 1, 1)
         @test vec2 == [1]
-        vec3 = []
-        pso.swap!(vec3, 1, 1)
-        @test vec3 == []
     end
 end

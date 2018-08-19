@@ -23,7 +23,7 @@ This package is in an early development version. If you want to experiment with 
 - CLERC, Maurice. Standard particle swarm optimisation. 2012.
 - JANSON, Stefan; MIDDENDORF, Martin. A hierarchical particle swarm optimizer and its adaptive variant. IEEE Transactions on Systems, Man, and Cybernetics, Part B (Cybernetics), 2005, 35. Jg., Nr. 6, S. 1272-1282. (in progress)
 
-## Planned feature (in descend order)
+## Planned features (in descend order)
 
 - PSO for dynamic problems: JANSON, Stefan; MIDDENDORF, Martin. A hierarchical particle swarm optimizer for noisy and dynamic environments. Genetic Programming and Evolvable Machines, 2006, 7. Jg., Nr. 4, S. 329-354. (in progress)
 - Running the PSO on the GPU with [CUDAnative.jl](https://github.com/JuliaGPU/CUDAnative.jl)
