@@ -35,7 +35,11 @@ julia> sphere([3.0, 4.0])
 ```
 """
 @inline function sphere(x::AbstractVector{<:Number})
-    sum(x.^2)
+    s = zero(eltype(x))
+    for e in x
+        s += e^2
+    end
+    return s
 end
 
 """
@@ -63,7 +67,7 @@ julia> euclidean_distance([3.0, 4.0])
 ```
 """
 @inline function euclidean_distance(x::AbstractVector{<:Number})
-    sqrt(sum(x.^2))
+    sqrt(sphere(x))
 end
 
 """
@@ -391,7 +395,7 @@ julia> griewank([0.0, 0.0])
 ```
 """
 function griewank(x::AbstractVector{<:Number})
-    1 + sum(x.^2)/4_000 - prod(cos.(x./(1:length(x))))
+    1 + sphere(x)/4_000 - prod(cos.(x./(1:length(x))))
 end
 
 """
