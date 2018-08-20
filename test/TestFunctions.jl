@@ -5,21 +5,21 @@ const tfn = pso.TestFunctions
     @testset "sphere function" begin
         @test tfn.sphere([0]) == 0
         @test tfn.sphere([0.0]) == 0
-        @test tfn.sphere(zeros(Vector{Float64}(10))) == 0
+        @test tfn.sphere(fill(0, 10)) == 0
         @test tfn.sphere([3.0, 4.0]) == 25
     end
     
     @testset "euclidean_distance function" begin
         @test tfn.euclidean_distance([0]) == 0
         @test tfn.euclidean_distance([0.0]) == 0
-        @test tfn.euclidean_distance(zeros(Vector{Float64}(10))) == 0
+        @test tfn.euclidean_distance(fill(0, 10)) == 0
         @test tfn.euclidean_distance([3.0, 4.0]) == 5
     end
 
     @testset "rastrigin function" begin
         @test tfn.rastrigin([0]) == 0
         @test tfn.rastrigin([0.0]) == 0
-        @test tfn.rastrigin(zeros(Vector{Float64}(10))) == 0
+        @test tfn.rastrigin(fill(0, 10)) == 0
         @test tfn.rastrigin([0.0, 0.0], A=-2.3) == 0.0
     end
 
@@ -31,7 +31,7 @@ const tfn = pso.TestFunctions
     @testset "rosenbrock's function" begin
         @test tfn.rosenbrock([1.0]) == 0
         @test tfn.rosenbrock([1, 1]) == 0
-        @test tfn.rosenbrock(ones(Vector{Float64}(10))) == 0.0
+        @test tfn.rosenbrock(fill(1, 10)) == 0.0
     end
 
     @testset "eggholder function" begin

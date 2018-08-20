@@ -24,7 +24,7 @@ f(0) = 0
 ### Recommanded searchspace
 
 ```math
--\infty ≦ x ≦ \infty
+-∞ ≦ x ≦ ∞
 ```
 
 ### Examples
@@ -52,7 +52,7 @@ f(0) = 0
 ### Recommanded searchspace
 
 ```math
--\infty ≦ x ≦ \infty
+-∞ ≦ x ≦ ∞
 ```
 
 ### Examples
@@ -119,8 +119,8 @@ julia> ackley(0.0, 0.0)
 ```
 """
 @inline function ackley(x::AbstractVector{<:Number})
-    # -20.0*e^(-0.2*sqrt((x^2 + y^2)/2.0)) - e^((cos(2π*x) + cos(2π*y))/2.0) + e + 20.0
-    -20*e^(-0.2*sqrt(sum(x.^2)/length(x))) - e^(sum(cos.(2π.*x))/length(x)) + e + 20
+    # -20.0*ℯ^(-0.2*sqrt((x^2 + y^2)/2.0)) - ℯ^((cos(2π*x) + cos(2π*y))/2.0) + ℯ + 20.0
+    -20*ℯ^(-0.2*sqrt(sum(x.^2)/length(x))) - ℯ^(sum(cos.(2π.*x))/length(x)) + ℯ + 20
 end
 # @inline ackley(x::AbstractVector{<:Number}) = ackley(x[1], x[2])
 
@@ -138,7 +138,7 @@ f(1, 1, ..., 1) = 0
 ### Recommanded searchspace
 
 ```math
--\infty ≦ x ≦ \infty
+-∞ ≦ x ≦ ∞
 ```
 
 ### Examples
@@ -229,7 +229,7 @@ f(optimum) = 0.02
 ### Recommanded searchspace
 
 ```math
--\infty ≦ x ≦ \infty
+-∞ ≦ x ≦ ∞
 ```
 
 # Examples
@@ -259,7 +259,7 @@ f(-0.5, -1.5) = 0.0
 ### Recommanded searchspace
 
 ```math
--\infty ≦ x ≦ \infty
+-∞ ≦ x ≦ ∞
 ```
 
 # Examples
@@ -299,7 +299,7 @@ julia> stybliski([-2.903534, -2.903534])
 ```
 """
 @inline function stybliski(x::AbstractVector{<:Number})
-    sum(x.^4 .- 16.*x.^2 .+ 5.* x)/2
+    sum(x.^4 .- 16 .*x.^2 .+ 5 .* x)/2
 end
 
 """
@@ -380,7 +380,7 @@ f(0, 0, ..., 0) = 0
 ### Recommanded searchspace
 
 ```math
--\infty ≦ x ≦ \infty
+-∞ ≦ x ≦ ∞
 ```
 
 ### Examples

@@ -1,3 +1,4 @@
+import Random
 export Objective, PSO, update_velocity!, update_position!, optimize!
 
 """
@@ -153,7 +154,7 @@ Returns the neighbour with the best evaluation of an particle.
                                compare::Function)
     min_idx = one(eltype(neighbours))
     @inbounds min_val = results_best[neighbours[min_idx]]
-    @inbounds for neig_idx in (min_idx+min_idx):endof(neighbours)
+    @inbounds for neig_idx in (min_idx+min_idx):lastindex(neighbours)
         if compare(results_best[neighbours[neig_idx]], min_val)
             min_idx = neig_idx
             min_val = results_best[neighbours[neig_idx]]
@@ -170,7 +171,7 @@ Evaluates the a particle `position` and copies it to the particles memory if the
 @inline function evaluate!(position::AbstractVector{T}, results_best::AbstractVector{<:Number}, pos_best::AbstractVector{T}, idx::Int, cmp::Function, obj::Function) where T<:Number
     result = obj(position)
     @inbounds if cmp(result, results_best[idx])
-        copy!(pos_best, position)
+        copyto!(pos_best, position)
         results_best[idx] = result
     end
     return
@@ -196,7 +197,7 @@ function optimize!(pso::PSO{T, C, R, I}, number_of_iterations::I) where {T, C, R
     num_particles::Int = pso.neighbours.particle_number
 
     for iter in one(I):number_of_iterations
-        rand!(pso.random_mat)
+        Random.rand!(pso.random_mat)
 
         @inbounds for particle_idx in 1:num_particles
             l_best = pso.get_localbest(pso.results_best,  pso.neighbours[particle_idx], pso.compare)

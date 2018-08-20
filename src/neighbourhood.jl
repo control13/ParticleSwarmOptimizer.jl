@@ -1,6 +1,6 @@
 export Neighbourhood, LocalNeighbourhood, GlobalNeighbourhood, HierachicalNeighbourhood
 
-abstract type Neighbourhood{I} <: AbstractVector{AbstractVector{I<:Integer}} end
+abstract type Neighbourhood{I<:Integer} <: AbstractVector{I} end
 # Base.eltype(::Type{<:Neighbourhood{I}}) = I
 # Base.eltype(n::Neighbourhood{I}) = I
 Base.IndexStyle(::Type{<:Neighbourhood}) = IndexLinear()
@@ -23,7 +23,7 @@ struct LocalNeighbourhood{I} <: Neighbourhood{I}
 end
 function LocalNeighbourhood(particle_number::I, width::I=one(I)) where I <: Integer
     @assert (particle_number ≥ 2*width + 1) "For $particle_number particles the width can be $(Int(round((particle_number-1)/2))) at most."
-    all_neigs = Vector{Vector{I}}(particle_number)
+    all_neigs = Vector{Vector{I}}(undef, particle_number)
     for current in one(particle_number):particle_number
         neighbours = collect((current-width):(current+width))
         neighbours[neighbours.<one(I)] .+= particle_number
@@ -115,7 +115,7 @@ function getparents(childs::AbstractVector{<:AbstractVector{<:I}}) where I<:Inte
     parents = ones(eltype(childs[one(I)]), length(childs))
     for parent_index in (one(I)+one(I)):length(childs)
         isempty(childs[parent_index]) && continue
-        parents[childs[parent_index]] = parent_index
+        parents[childs[parent_index]] .= parent_index
     end
     return parents
 end
