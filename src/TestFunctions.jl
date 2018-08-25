@@ -35,7 +35,7 @@ julia> sphere([3.0, 4.0])
 ```
 """
 @inline function sphere(x::AbstractVector{<:Number})
-    s = zero(eltype(x))
+    s = zero(eltype(x))^2
     for e in x
         s += e^2
     end
