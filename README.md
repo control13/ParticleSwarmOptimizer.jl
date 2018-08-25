@@ -18,6 +18,21 @@ This package is in an early development version. If you want to experiment with 
     Pkg.clone("git@github.com:control13/ParticleSwarmOptimizer.jl.git")
     Pkg.build("ParticleSwarmOptimizer")
 
+## Currently needed for a working pso
+
+### Search space
+
+Minimum requirements for the type of the search space:
+
+- basic operations on the search space itself: `+, -`
+- operations with different types: `Float *`
+- random: `rand`
+- comparision: `<`, `>`
+
+Minimum requirements for the return type of the fitness function:
+
+- userdefined comparision: somthing like `<`
+
 ## Implemented versions of PSO
 
 - CLERC, Maurice. Standard particle swarm optimisation. 2012.
@@ -27,6 +42,8 @@ This package is in an early development version. If you want to experiment with 
 
 - PSO for dynamic problems: JANSON, Stefan; MIDDENDORF, Martin. A hierarchical particle swarm optimizer for noisy and dynamic environments. Genetic Programming and Evolvable Machines, 2006, 7. Jg., Nr. 4, S. 329-354. (in progress)
 - Running the PSO on the GPU with [CUDAnative.jl](https://github.com/JuliaGPU/CUDAnative.jl)
+- Position with different space compared to velocity
+- add [Distributions.jl](https://github.com/JuliaStats/Distributions.jl) and random seed for random stuff
 
 ## Documentation
 

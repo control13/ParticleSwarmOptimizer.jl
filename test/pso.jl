@@ -1,7 +1,8 @@
 @testset "pso" begin
-    obj = pso.Objective(pso.TestFunctions.sphere, 3, (-5.0, 5.0))
+    obj = pso.Objective(pso.TestFunctions.sphere, [-5.0, 5.0], 3)
     @testset "Objective" begin
-        @test obj.search_space == [(-5.0, 5.0), (-5.0, 5.0), (-5.0, 5.0)]
+        # obj1 = pso.Objective(pso.TestFunctions.sphere, [-5.0, 5.0], 3)
+        @test obj.search_space == [[-5.0, 5.0], [-5.0, 5.0], [-5.0, 5.0]]
     end
     @testset "update_position" begin
         position = [1.0, 2.0]
@@ -16,7 +17,7 @@
     @testset "confinements" begin
         position = [6.0, 2.0]
         velocity = [1.0, -2.0]
-        pso.confinement!(position, velocity, [(-5.0, 5.0), (-5.0, 5.0)])
+        pso.confinement!(position, velocity, [[-5.0, 5.0], [-5.0, 5.0]])
         @test position == [5.0, 2.0]
         @test velocity == [-0.5, -2.0]
     end
@@ -37,14 +38,14 @@
     neig = pso.GlobalNeighbourhood(20)
     optimizer = pso.PSO(obj, neig)
     @testset "PSO object" begin
-        @test size(optimizer.position_matrix) == (3, 20)
-        @test size(optimizer.velocity_matrix) == (3, 20)
-        for el in optimizer.position_matrix
-            @test -5 ≤ el ≤ 5
-        end
-        for el in optimizer.position_matrix.+optimizer.velocity_matrix
-            @test -5 ≤ el ≤ 5
-        end
+        @test size(optimizer.position) == (20,)
+        @test size(optimizer.velocity) == (20,)
+        # for el in optimizer.position
+        #     @test -5 ≤ el ≤ 5
+        # end
+        # for el in optimizer.position_matrix.+optimizer.velocity_matrix
+        #     @test -5 ≤ el ≤ 5
+        # end
     end
     @testset "optimize! function" begin
         pso.optimize!(optimizer, 500)
