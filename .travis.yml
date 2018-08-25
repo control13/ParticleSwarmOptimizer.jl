@@ -31,7 +31,7 @@ script:
  - julia --check-bounds=yes --inline=no -e 'import Pkg; Pkg.build("ParticleSwarmOptimizer"); Pkg.test(; coverage=true)'
 after_success:
   # push coverage results to Coveralls
-  # - julia -e 'cd(Pkg.dir("ParticleSwarmOptimizer")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
+  - julia -e 'cd(Pkg.dir("ParticleSwarmOptimizer")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
   # push coverage results to Codecov
   - julia -e 'import Pkg; Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
   # create docu
