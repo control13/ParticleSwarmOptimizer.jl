@@ -1,3 +1,4 @@
+import Random
 export Objective, PSO, update_velocity!, update_position!, optimize!
 
 """
@@ -5,13 +6,27 @@ export Objective, PSO, update_velocity!, update_position!, optimize!
 
 Stores the objective function and the related `search_space` the dimensionality.
 """
-struct Objective{T<:Number}
+struct Objective{T}
     fun::Function
-    search_space::AbstractVector{<:Tuple{T, T}} # TODO: other  object for search_space, maybe allow ellipses and more, maybe constraints?
+    search_space::AbstractVector{<:AbstractVector{<:T}} # TODO: other  object for search_space, maybe allow ellipses and more, maybe constraints?
+    function Objective(fun::Function, search_space::AbstractVector{<:AbstractVector})
+        isempty(search_space) && error("`search_space` is empty")
+        for e in search_space
+            length(e) != 2 && error("$e has not exactly two elements")
+            !(e[1] < e[2]) && error("$(e[1]) is not less than $(e[2])")
+        end
+        return new{eltype(eltype(search_space))}(fun, search_space)
+    end
 end
-function Objective(fun::Function, number_of_dimensions::Integer, search_space::Tuple{T, T}) where T<:Number
+function Objective(fun::Function, search_space::AbstractVector, number_of_dimensions::Integer)
+    length(search_space) != 2 && error("search must contain the lower and the upper limit")
     search_space = [search_space for i in 1:number_of_dimensions]
-    Objective{T}(fun, search_space)
+    Objective(fun, search_space)
+end
+function Objective(fun::Function, lower_limits::AbstractVector, upper_limits::AbstractVector)
+    length(lower_limits) == length(upper_limits) || error("`lower_limits` and `upper_limits` must have the same length")
+    search_space = [[lower_limits[i], upper_limits[i]] for i in 1:number_of_dimensions]
+    Objective(fun, search_space)
 end
 
 const LOWER_BOUND_IDX = 1
@@ -22,22 +37,17 @@ const UPPER_BOUND_IDX = 2
 
 Packs all data for the pso.
 """
-mutable struct PSO{T<:Number, C<:Number, R<:Number, I<:Integer}
+mutable struct PSO{T, C, R, I<:Integer}
     objective::Objective{T}
 
     coefficients::AbstractVector{C}
 
     iterations::I
 
-    position_matrix::AbstractMatrix{T}
-    velocity_matrix::AbstractMatrix{T}
-    position::AbstractVector{<:AbstractVector{T}}
-    velocity::AbstractVector{<:AbstractVector{T}}
-    position_dimension::AbstractVector{<:AbstractVector{T}}
-    velocity_dimension::AbstractVector{<:AbstractVector{T}}
-
-    pos_best_mat::AbstractMatrix{T}
-    pos_best::AbstractVector{<:AbstractVector{T}}
+    position::AbstractVector{<:AbstractVector{<:T}}
+    velocity::AbstractVector{<:AbstractVector{<:T}}
+    
+    pos_best::AbstractVector{<:AbstractVector{<:T}}
     results_best::AbstractVector{R}
 
     random_mat::AbstractArray{C, 3}
@@ -53,40 +63,37 @@ mutable struct PSO{T<:Number, C<:Number, R<:Number, I<:Integer}
 
     compare::Function
 end
-function PSO(objective::Objective{T}, neighbours::Neighbourhood{I};
-             additional_arguments::Dict{Symbol, <:Any}=Dict{Symbol, Any}(), compare::Function=<,
-             coefficients::AbstractVector{C}=[1.0/(2.0*log(2.0)), 0.5 + log(2), 0.5 + log(2)]) where T<:Number where C<:Number where I<:Integer
+function PSO(objective::Objective{T}, neighbours::Neighbourhood{I}; compare::Function=<,
+             coefficients::AbstractVector{C}=[1.0/(2.0*log(2.0)), 0.5 + log(2), 0.5 + log(2)]) where T where C where I<:Integer
 
     number_of_particles = length(neighbours)
     number_of_dimensions = length(objective.search_space)
-    # Initialization - SPSO 2011 default
-    position_matrix = rand(T, number_of_dimensions, number_of_particles)
-    velocity_matrix = rand(T, number_of_dimensions, number_of_particles)
-    position = [view(position_matrix, :, i) for i in 1:number_of_particles]
-    velocity = [view(velocity_matrix, :, i) for i in 1:number_of_particles]
-    position_dimension = [view(position_matrix, i, :) for i in 1:number_of_dimensions]
-    velocity_dimension = [view(velocity_matrix, i, :) for i in 1:number_of_dimensions]
 
-    for d in 1:length(position_dimension)
-        position_dimension[d] .= project.(position_dimension[d], zero(T), oneunit(T), objective.search_space[d]...)
-        velocity_dimension[d] .= project.(velocity_dimension[d], zero(T), oneunit(T), 
-                                          objective.search_space[d][LOWER_BOUND_IDX].-position_dimension[d],
-                                          objective.search_space[d][UPPER_BOUND_IDX].-position_dimension[d])
+    # Initialization - SPSO 2011 default
+    position = [Vector{T}(undef, number_of_dimensions) for i in 1:number_of_particles]
+    velocity = [Vector{T}(undef, number_of_dimensions) for i in 1:number_of_particles]
+
+    for p in 1:number_of_particles, d in 1:number_of_dimensions
+        serach_type = eltype(objective.search_space[d])
+        # TODO: use Distributions.jl instead of project
+        position[p][d] = project(rand(serach_type), zero(serach_type), oneunit(serach_type), objective.search_space[d]...)
+        velocity[p][d] = project(rand(serach_type), zero(serach_type), oneunit(serach_type), 
+                                          objective.search_space[d][LOWER_BOUND_IDX].-position[p][d],
+                                          objective.search_space[d][UPPER_BOUND_IDX].-position[p][d])
     end
 
-    results_best = objective.fun.(position; additional_arguments...)
+    results_best = objective.fun.(position)
 
-    pos_best_mat = copy(position_matrix)
-    pos_best = [view(pos_best_mat, :, i) for i in 1:length(position)]
+    pos_best = deepcopy(position)
 
     rearrange!(neighbours, results_best, compare)
 
-    random_mat = zeros(C, length(position_dimension), length(position), 2)
+    random_mat = zeros(C, number_of_dimensions, length(position), 2)
     rand1 = [view(random_mat, :, i, 1) for i in 1:length(position)]
     rand2 = [view(random_mat, :, i, 2) for i in 1:length(position)]
 
-    return PSO(objective, coefficients, zero(I), position_matrix, velocity_matrix, position, velocity, position_dimension,
-        velocity_dimension, pos_best_mat, pos_best, results_best, random_mat, rand1, rand2, update_velocity!,
+    return PSO(objective, coefficients, zero(I), position, velocity,
+        pos_best, results_best, random_mat, rand1, rand2, update_velocity!,
         update_position!, confinement!, get_localbest, neighbours, compare)
 end
 
@@ -98,10 +105,10 @@ end
 
 Default equation for calculating the velocity for the next step.
 """
-@inline function update_velocity!(position::AbstractVector{T}, velocity::AbstractVector{T},
-                                  personal_best::AbstractVector{T}, local_best::AbstractVector{T},
+@inline function update_velocity!(position::AbstractVector{<:T}, velocity::AbstractVector{<:T},
+                                  personal_best::AbstractVector{<:T}, local_best::AbstractVector{<:T},
                                   rand_a::AbstractVector{C}, rand_b::AbstractVector{C},
-                                  coefficients::AbstractVector{C}) where T<:Number where C<:Number
+                                  coefficients::AbstractVector{C}) where T where C
     w, c1, c2 = coefficients
     @inbounds for pidx in eachindex(velocity)
         velocity[pidx] = w*velocity[pidx] + c1*rand_a[pidx]*(personal_best[pidx] - position[pidx]) + c2*rand_b[pidx]*(local_best[pidx] - position[pidx])
@@ -109,18 +116,18 @@ Default equation for calculating the velocity for the next step.
     return
 end
 
-# @inline function update_velocity_geometric!(position::AbstractVector{T}, velocity::AbstractVector{T}, personal_best::AbstractVector{T}, local_best::AbstractVector{T}, rand_a::AbstractVector{T}, rand_b::AbstractVector{T}, w::Number, c1::Number, c2::Number) where T<:Number
+# @inline function update_velocity_geometric!(position::AbstractVector{<:T}, velocity::AbstractVector{<:T}, personal_best::AbstractVector{<:T}, local_best::AbstractVector{<:T}, rand_a::AbstractVector{<:T}, rand_b::AbstractVector{<:T}, w::Number, c1::Number, c2::Number) where T<:Number
 #     velocity .= w.*velocity .+ c1.*rand_a.*(personal_best .- position) .+ c2.*rand_b.*(local_best .- position)
 # end
 
 """
-    function update_position!(position::AbstractVector{T}, velocity::AbstractVector{T},
-                              personal_best::AbstractVector{T}, local_best::AbstractVector{T}) where T<:Number
+    function update_position!(position::AbstractVector{<:T}, velocity::AbstractVector{<:T},
+                              personal_best::AbstractVector{<:T}, local_best::AbstractVector{<:T}) where T<:Number
 
 Default update of the next position.
 """
-@inline function update_position!(position::AbstractVector{T}, velocity::AbstractVector{T},
-                                  personal_best::AbstractVector{T}, local_best::AbstractVector{T}) where T<:Number
+@inline function update_position!(position::AbstractVector{<:T}, velocity::AbstractVector{<:T},
+                                  personal_best::AbstractVector{<:T}, local_best::AbstractVector{<:T}) where T
     position .+= velocity
     return 
 end
@@ -130,7 +137,7 @@ end
 
 Checks, if a particle is over the edge of search space. If yes for a dimension, it will be set on the edge and the velocity for this dimension will be inverted and decreased by the half.
 """
-@inline function confinement!(position::AbstractVector{T}, velocity::AbstractVector{T}, limits::AbstractVector{<:Tuple{T,T}}) where T<:Number
+@inline function confinement!(position::AbstractVector{<:T}, velocity::AbstractVector{<:T}, limits::AbstractVector{<:AbstractVector{<:T}}) where T
     @inbounds for d in eachindex(position)
         if position[d] < limits[d][LOWER_BOUND_IDX]
             velocity[d] *= -0.5
@@ -153,7 +160,7 @@ Returns the neighbour with the best evaluation of an particle.
                                compare::Function)
     min_idx = one(eltype(neighbours))
     @inbounds min_val = results_best[neighbours[min_idx]]
-    @inbounds for neig_idx in (min_idx+min_idx):endof(neighbours)
+    @inbounds for neig_idx in (min_idx+min_idx):lastindex(neighbours)
         if compare(results_best[neighbours[neig_idx]], min_val)
             min_idx = neig_idx
             min_val = results_best[neighbours[neig_idx]]
@@ -162,10 +169,15 @@ Returns the neighbour with the best evaluation of an particle.
     return neighbours[min_idx]
 end
 
-@inline function evaluate!(position::AbstractVector{T}, results_best::AbstractVector{<:Number}, pos_best::AbstractVector{T}, idx::Int, cmp::Function, obj::Function) where T<:Number
+"""
+    evaluate!(position::AbstractVector{T}, results_best::AbstractVector{<:Number}, pos_best::AbstractVector{T}, idx::Int, cmp::Function, obj::Function) where T<:Number
+
+Evaluates the a particle `position` and copies it to the particles memory if the compare function `cmp` says true. To the compare funciton the result from  objective function is applied as first argument, the current best evaluation value as second argument.
+"""
+@inline function evaluate!(position::AbstractVector{<:T}, results_best::AbstractVector, pos_best::AbstractVector{<:T}, idx::Integer, cmp::Function, obj::Function) where T
     result = obj(position)
-    if cmp(result, results_best[idx])
-        copy!(pos_best, position)
+    @inbounds if cmp(result, results_best[idx])
+        copyto!(pos_best, position)
         results_best[idx] = result
     end
     return
@@ -191,7 +203,7 @@ function optimize!(pso::PSO{T, C, R, I}, number_of_iterations::I) where {T, C, R
     num_particles::Int = pso.neighbours.particle_number
 
     for iter in one(I):number_of_iterations
-        rand!(pso.random_mat)
+        Random.rand!(pso.random_mat)
 
         @inbounds for particle_idx in 1:num_particles
             l_best = pso.get_localbest(pso.results_best,  pso.neighbours[particle_idx], pso.compare)
@@ -224,5 +236,5 @@ julia> getoptimum()
 """
 @inline function getoptimum(pso::PSO{T, C, R, I})  where {T, C, R, I<:Integer}
     all_best = get_localbest(pso.results_best, one(I):pso.neighbours.particle_number, pso.compare)
-    return (pso.pos_best_mat[:, all_best], pso.results_best[all_best])
+    return pso.pos_best[all_best], pso.results_best[all_best]
 end

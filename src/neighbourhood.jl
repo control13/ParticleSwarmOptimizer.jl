@@ -1,6 +1,6 @@
 export Neighbourhood, LocalNeighbourhood, GlobalNeighbourhood, HierachicalNeighbourhood
 
-abstract type Neighbourhood{I} <: AbstractVector{AbstractVector{I<:Integer}} end
+abstract type Neighbourhood{I<:Integer} <: AbstractVector{I} end
 # Base.eltype(::Type{<:Neighbourhood{I}}) = I
 # Base.eltype(n::Neighbourhood{I}) = I
 Base.IndexStyle(::Type{<:Neighbourhood}) = IndexLinear()
@@ -23,7 +23,7 @@ struct LocalNeighbourhood{I} <: Neighbourhood{I}
 end
 function LocalNeighbourhood(particle_number::I, width::I=one(I)) where I <: Integer
     @assert (particle_number ≥ 2*width + 1) "For $particle_number particles the width can be $(Int(round((particle_number-1)/2))) at most."
-    all_neigs = Vector{Vector{I}}(particle_number)
+    all_neigs = Vector{Vector{I}}(undef, particle_number)
     for current in one(particle_number):particle_number
         neighbours = collect((current-width):(current+width))
         neighbours[neighbours.<one(I)] .+= particle_number
@@ -61,6 +61,7 @@ HierachicalNeighbourhoodByTreeHeight(tree_height::Integer, branching_degree::Int
         - The particle number results from the full tree.
 """
 struct HierachicalNeighbourhood{I} <: Neighbourhood{I}
+    single_particle::AbstractVector{<:AbstractVector{<:I}}
     particle_number::I
     branching_degree::I
     childs::AbstractVector{<:AbstractVector{<:I}}
@@ -74,13 +75,13 @@ function HierachicalNeighbourhood(particle_number::I, branching_degree::I) where
     parent = getparents(childs)
     particle_to_graph = collect(one(I):particle_number)
     graph_to_particle = collect(one(I):particle_number)
-    HierachicalNeighbourhood(particle_number, branching_degree, childs, parent, particle_to_graph, graph_to_particle)
+    HierachicalNeighbourhood([[i] for i in one(I):particle_number], particle_number, branching_degree, childs, parent, particle_to_graph, graph_to_particle)
 end
 function HierachicalNeighbourhoodByTreeHeight(tree_height::I, branching_degree::I) where I<:Integer
     particle_number = convert(Int, (branching_degree^tree_height - one(I))/(branching_degree - one(I)))
     HierachicalNeighbourhood(particle_number, branching_degree)
 end
-getneighbour(g::HierachicalNeighbourhood, i::Integer) = [g.graph_to_particle[g.parent[g.particle_to_graph[i]]]]
+getneighbour(g::HierachicalNeighbourhood, i::Integer) = g.single_particle[g.graph_to_particle[g.parent[g.particle_to_graph[i]]]]
 
 """
     getchilds(particle_number::T, branching_degree::T) where T <: Integer
@@ -103,7 +104,6 @@ function getchilds(particle_number::I, branching_degree::I) where I <: Integer
         cummmulative_width += width
         current_height += one(I)
     end
-    childs
 end
 
 """
@@ -115,9 +115,41 @@ function getparents(childs::AbstractVector{<:AbstractVector{<:I}}) where I<:Inte
     parents = ones(eltype(childs[one(I)]), length(childs))
     for parent_index in (one(I)+one(I)):length(childs)
         isempty(childs[parent_index]) && continue
-        parents[childs[parent_index]] = parent_index
+        parents[childs[parent_index]] .= parent_index
     end
     return parents
+end
+
+"""
+    function bestchild(graph_to_particle::AbstractVector{I}, childs_graph::AbstractVector{I}, personal_best::AbstractVector{<:Number}, compare::Function) where I<:Integer
+
+Resturns the "best" child of a node in the neighbourhood tree. What the best is, is determined by compare function. If more than one particle have the "best" personal best value, the first in the row is taken.
+"""
+@inline function bestchild(graph_to_particle::AbstractVector{I}, childs_graph::AbstractVector{I}, personal_best::AbstractVector{<:Number}, compare::Function) where I<:Integer
+    @inbounds child_min_particle = graph_to_particle[childs_graph[one(I)]]
+    @inbounds minval = personal_best[child_min_particle]
+    @inbounds for child in childs_graph
+        childs_particle = graph_to_particle[child]
+        nextval = personal_best[childs_particle]
+        if compare(nextval, minval)
+            minval = nextval
+            child_min_particle = childs_particle
+        end
+    end
+    return child_min_particle
+end
+
+"""
+    function swapifnecessary!(n::HierachicalNeighbourhood{I}, personal_best::AbstractVector{<:Number}, child_min_particle::I, parent_particle::I, child_min_graph::I, parent_graph::I, compare::Function) where I<:Integer
+
+Swaps to particles in the neighbourhood tree if the personal_best of the particle in the subtree is "better" than the node. "better" means if the `compare` function results in true.
+"""
+@inline function swapifnecessary!(n::HierachicalNeighbourhood{I}, personal_best::AbstractVector{<:Number}, child_min_particle::I, parent_particle::I, child_min_graph::I, parent_graph::I, compare::Function) where I<:Integer
+    @inbounds if compare(personal_best[child_min_particle], personal_best[parent_particle])
+        swap!(n.particle_to_graph, child_min_particle, parent_particle)
+        swap!(n.graph_to_particle, child_min_graph, parent_graph)
+    end
+    return
 end
 
 """
@@ -128,17 +160,14 @@ The tree will be checked from the top to the bottom. A particle can at most clim
 but can travel down from the top to the bottom in one function call.
 """
 function rearrange!(n::HierachicalNeighbourhood, personal_best::AbstractVector{<:Number}, compare::Function)
-    for (parent_graph, childs_graph) in enumerate(n.childs)
+    n_childs::Int = n.particle_number
+    @inbounds for parent_graph in 1:n_childs
+        childs_graph = n.childs[parent_graph]
         isempty(childs_graph) && continue
-        childs_particle = n.graph_to_particle[childs_graph]
-        child_min_particle = childs_particle[indmin(personal_best[childs_particle])]
+        child_min_particle = bestchild(n.graph_to_particle, childs_graph, personal_best, compare)
         child_min_graph = n.particle_to_graph[child_min_particle]
         parent_particle = n.graph_to_particle[parent_graph]
-        if compare(personal_best[child_min_particle], personal_best[parent_particle])
-            n.particle_to_graph[child_min_particle], n.particle_to_graph[parent_particle] =
-                        n.particle_to_graph[parent_particle], n.particle_to_graph[child_min_particle]
-            n.graph_to_particle[child_min_graph], n.graph_to_particle[parent_graph] =
-                        n.graph_to_particle[parent_graph], n.graph_to_particle[child_min_graph]
-        end
+        swapifnecessary!(n, personal_best, child_min_particle, parent_particle, child_min_graph, parent_graph, compare)
     end
+    return
 end

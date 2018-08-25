@@ -1,9 +1,9 @@
 # ParticleSwarmOptimizer (PSO)
 
 [![Build Status](https://travis-ci.org/control13/ParticleSwarmOptimizer.jl.svg?branch=master)](https://travis-ci.org/control13/ParticleSwarmOptimizer.jl)
+[![Build status](https://ci.appveyor.com/api/projects/status/w4cfv06l3dxwsr9o/branch/master?svg=true)](https://ci.appveyor.com/project/control13/particleswarmoptimizer-jl/branch/master)
 
-<!-- [![Coverage Status](https://coveralls.io/repos/control13/ParticleSwarmOptimizer.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/control13/ParticleSwarmOptimizer.jl?branch=master) -->
-
+[![Coverage Status](https://coveralls.io/repos/github/control13/ParticleSwarmOptimizer.jl/badge.svg?branch=master)](https://coveralls.io/github/control13/ParticleSwarmOptimizer.jl?branch=master)
 [![codecov.io](http://codecov.io/github/control13/ParticleSwarmOptimizer.jl/coverage.svg?branch=master)](http://codecov.io/github/control13/ParticleSwarmOptimizer.jl?branch=master)
 
 Implementation of the meta heuristic Particle Swarm Optimization in pure Julia.
@@ -18,15 +18,32 @@ This package is in an early development version. If you want to experiment with 
     Pkg.clone("git@github.com:control13/ParticleSwarmOptimizer.jl.git")
     Pkg.build("ParticleSwarmOptimizer")
 
+## Currently needed for a working pso
+
+### Search space
+
+Minimum requirements for the type of the search space:
+
+- basic operations on the search space itself: `+, -`
+- operations with different types: `Float *`
+- random: `rand`
+- comparision: `<`, `>`
+
+Minimum requirements for the return type of the fitness function:
+
+- userdefined comparision: somthing like `<`
+
 ## Implemented versions of PSO
 
 - CLERC, Maurice. Standard particle swarm optimisation. 2012.
 - JANSON, Stefan; MIDDENDORF, Martin. A hierarchical particle swarm optimizer and its adaptive variant. IEEE Transactions on Systems, Man, and Cybernetics, Part B (Cybernetics), 2005, 35. Jg., Nr. 6, S. 1272-1282. (in progress)
 
-## Planned feature (in descend order)
+## Planned features (in descend order)
 
 - PSO for dynamic problems: JANSON, Stefan; MIDDENDORF, Martin. A hierarchical particle swarm optimizer for noisy and dynamic environments. Genetic Programming and Evolvable Machines, 2006, 7. Jg., Nr. 4, S. 329-354. (in progress)
 - Running the PSO on the GPU with [CUDAnative.jl](https://github.com/JuliaGPU/CUDAnative.jl)
+- Position with different space compared to velocity
+- add [Distributions.jl](https://github.com/JuliaStats/Distributions.jl) and random seed for random stuff
 
 ## Documentation
 
