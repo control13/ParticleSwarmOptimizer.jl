@@ -1,6 +1,1 @@
-julia 0.6
-IJulia
-Interact
-Reactive
-Plots
-BenchmarkTools
+julia 0.7-

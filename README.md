@@ -1,6 +1,7 @@
 # ParticleSwarmOptimizer (PSO)
 
 [![Build Status](https://travis-ci.org/control13/ParticleSwarmOptimizer.jl.svg?branch=master)](https://travis-ci.org/control13/ParticleSwarmOptimizer.jl)
+[![Build Status](https://ci.appveyor.com/api/github/webhook?id=x9x49ob6eshjyjf4/branch/master?svg=true)](https://ci.appveyor.com/project/control13/particleswarmoptimizer-jl/branch/master)
 
 <!-- [![Coverage Status](https://coveralls.io/repos/control13/ParticleSwarmOptimizer.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/control13/ParticleSwarmOptimizer.jl?branch=master) -->
 
